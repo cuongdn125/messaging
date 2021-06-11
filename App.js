@@ -6,10 +6,15 @@ import { StyleSheet, Text, View, Alert, Image, TouchableHighlight, BackHandler }
 import Status from './components/Status';
 import MessageList from './components/MessageList';
 import ToolBar from './components/ToolBar';
+import ImageGrid from './components/ImageGrid';
 
 import * as Location from 'expo-location';
 
 import { createTextMessage, createImageMessage, createLocationMessage} from './utils/MessageUtils';
+
+import MeasureLayout from './components/MeasureLayout';
+import KeyBroadState from './components/KeyBroadState';
+import MessagingContainer, {INPUT_METHOD} from './components/MessagingContainer';
 
 export default function App() {
 
@@ -22,6 +27,13 @@ export default function App() {
       longitude: -122.4324,
     })
   ]);
+
+  const [inputMethod, setInputMethod] = useState(INPUT_METHOD.NONE);
+
+  const handleChangeInputMethod = (inputMethod) => {
+    setInputMethod(inputMethod);
+  }
+
   const [fullscreenImageId, setFullscreenImageId] = useState(null);
 
   const dismissFullsreenImage = () => {
@@ -47,7 +59,10 @@ export default function App() {
     setMessages(newMessages);
   }
   
-  const handlePressToolbarCamera = () => {}
+  const handlePressToolbarCamera = () => {
+    setIsInputFocused(false);
+    setInputMethod(INPUT_METHOD.CUSTOM);
+  }
   const handlePressToolbarLocation = () => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -108,8 +123,14 @@ export default function App() {
       <MessageList messages={messages} onPressMessage={handlePressMessage} />
     </View>
   )
+
+  const handlePressImage = uri => {
+    setMessages([createImageMessage(uri), ...messages]);
+  }
   const renderInputMessage = () => (
-    <View style={styles.inputMessage}></View>
+    <View style={styles.inputMessage}>
+      <ImageGrid  onPressImage={handlePressImage}/>
+    </View>
   )
   const renderToolBar = () => (
     <View style={styles.toolBar}>
@@ -137,9 +158,24 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Status />
-      {renderListMessage()}
-      {renderToolBar()}
-      {renderInputMessage()}
+      <MeasureLayout>
+        {layout => (
+          <KeyBroadState layout={layout}>
+            {keyboardInfo =>(
+              <MessagingContainer 
+                {...keyboardInfo} 
+                inputMethod={inputMethod} 
+                onChangeInputMethod={handleChangeInputMethod} 
+                renderInputMethodEditor={renderInputMessage}
+              >
+                {renderListMessage()}
+                {renderToolBar()}
+              </MessagingContainer>
+            )}
+          </KeyBroadState>
+        )}
+      </MeasureLayout>
+      
       {renderFullscreenImage()}
     </View>
   );
